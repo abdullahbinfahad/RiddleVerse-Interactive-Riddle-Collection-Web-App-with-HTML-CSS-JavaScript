@@ -1,0 +1,216 @@
+/* Animation styles for the riddle game */
+/* These styles define the animations used for congratulations and visual effects */
+
+/* Confetti animation */
+@keyframes riddle-master-confetti {
+    0% {
+        transform: translateY(0) rotate(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.riddle-master-confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* Firework animation */
+@keyframes riddle-master-firework {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-100px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-150px);
+        opacity: 0;
+    }
+}
+
+.riddle-master-firework {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    z-index: 100;
+    animation: riddle-master-firework 0.5s ease-out forwards;
+    pointer-events: none;
+}
+
+/* Particle animation for fireworks */
+@keyframes riddle-master-particle {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(var(--end-x) - var(--start-x)), calc(var(--end-y) - var(--start-y))) scale(0);
+        opacity: 0;
+    }
+}
+
+.riddle-master-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* Star animation */
+@keyframes riddle-master-star {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(var(--end-x) - var(--start-x)), calc(var(--end-y) - var(--start-y))) scale(1) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.riddle-master-star {
+    position: absolute;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFD700"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>');
+    background-size: contain;
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* Bounce animation */
+@keyframes riddle-master-bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-30px);
+    }
+    60% {
+        transform: translateY(-15px);
+    }
+}
+
+.riddle-master-bounce {
+    animation: riddle-master-bounce 1s ease;
+}
+
+/* Pulse animation */
+@keyframes riddle-master-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.riddle-master-pulse {
+    animation: riddle-master-pulse 0.5s ease-in-out 2;
+}
+
+/* Shake animation for incorrect answers */
+@keyframes riddle-master-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.riddle-master-shake {
+    animation: riddle-master-shake 0.5s ease-in-out;
+}
+
+/* Fade in animation */
+@keyframes riddle-master-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.riddle-master-fade-in {
+    animation: riddle-master-fade-in 0.5s ease forwards;
+}
+
+/* Points animation */
+@keyframes riddle-master-points-popup {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    10% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    80% {
+        transform: translate(-50%, -80%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -100%) scale(1);
+        opacity: 0;
+    }
+}
+
+.riddle-master-points-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(110, 142, 251, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    z-index: 200;
+    pointer-events: none;
+    animation: riddle-master-points-popup 1.5s ease-out forwards;
+}
+
+/* Streak animation */
+@keyframes riddle-master-streak-glow {
+    0% {
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 1);
+    }
+    100% {
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+}
+
+.riddle-master-streak-glow {
+    animation: riddle-master-streak-glow 1s ease-in-out;
+    color: #FFD700;
+}

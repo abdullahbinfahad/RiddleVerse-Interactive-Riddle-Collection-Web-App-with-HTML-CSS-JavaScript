@@ -1,0 +1,940 @@
+// Main JavaScript for the riddle game
+// This file integrates all components and ensures isolation from other page elements
+
+// Immediately-invoked function expression (IIFE) to isolate all code
+(function() {
+    // Game state
+    const gameState = {
+        currentLanguage: null,
+        currentDifficulty: 'easy',
+        currentRiddle: null,
+        score: 0,
+        solved: 0,
+        streak: 0,
+        hintsUsed: 0,
+        riddlesData: null,
+        languageSections: null,
+        usedRiddles: new Set(),
+        animations: null
+    };
+
+    // DOM elements
+    const elements = {
+        container: document.getElementById('riddle-master'),
+        languageSelector: document.getElementById('riddle-master-language-selector'),
+        difficultyBtns: document.querySelectorAll('.riddle-master-difficulty-btn'),
+        question: document.getElementById('riddle-master-question'),
+        answerInput: document.getElementById('riddle-master-answer-input'),
+        submitBtn: document.getElementById('riddle-master-submit'),
+        hintBtn: document.getElementById('riddle-master-hint'),
+        skipBtn: document.getElementById('riddle-master-skip'),
+        hintText: document.getElementById('riddle-master-hint-text'),
+        result: document.getElementById('riddle-master-result'),
+        resultIcon: document.getElementById('riddle-master-result-icon'),
+        resultText: document.getElementById('riddle-master-result-text'),
+        answerText: document.getElementById('riddle-master-answer-text'),
+        nextBtn: document.getElementById('riddle-master-next'),
+        scoreDisplay: document.getElementById('riddle-master-score'),
+        solvedDisplay: document.getElementById('riddle-master-solved'),
+        streakDisplay: document.getElementById('riddle-master-streak'),
+        hintsUsedDisplay: document.getElementById('riddle-master-hints-used'),
+        content: document.getElementById('riddle-master-content')
+    };
+
+    // Initialize the game
+    function initGame() {
+        // Load CSS
+        loadStyles();
+        
+        // Load animations
+        loadAnimations();
+        
+        // Load riddles data
+        loadRiddlesData();
+        
+        // Set up event listeners
+        setupEventListeners();
+    }
+
+    // Load CSS dynamically to ensure isolation
+    function loadStyles() {
+        // Create a style element
+        const style = document.createElement('style');
+        style.id = 'riddle-master-styles';
+        
+        // Add CSS content
+        style.textContent = `
+            /* Base styles */
+            #riddle-master {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f9f9f9;
+                border-radius: 15px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                color: #333;
+                position: relative;
+                overflow: hidden;
+            }
+
+            #riddle-master * {
+                box-sizing: border-box;
+            }
+
+            /* Header styles */
+            #riddle-master-header {
+                text-align: center;
+                padding: 20px 0;
+                background: linear-gradient(135deg, #6e8efb, #a777e3);
+                color: white;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            #riddle-master-header h1 {
+                font-size: 2.5rem;
+                margin: 0;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            }
+
+            #riddle-master-header p {
+                font-size: 1.2rem;
+                margin: 10px 0 0;
+                opacity: 0.9;
+            }
+
+            /* Stats styles */
+            #riddle-master-stats {
+                display: flex;
+                justify-content: space-around;
+                padding: 15px;
+                background-color: #fff;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+
+            .riddle-master-stat {
+                text-align: center;
+            }
+
+            .riddle-master-stat-value {
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: #6e8efb;
+            }
+
+            .riddle-master-stat-label {
+                font-size: 0.9rem;
+                color: #666;
+            }
+
+            /* Language selector styles */
+            #riddle-master-language-selector {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 20px;
+                justify-content: center;
+            }
+
+            .riddle-master-language-btn {
+                padding: 10px 15px;
+                border: none;
+                border-radius: 30px;
+                background-color: #fff;
+                color: #333;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .riddle-master-language-btn:hover {
+                background-color: #f0f0f0;
+                transform: translateY(-2px);
+            }
+
+            .riddle-master-language-btn.active {
+                background-color: #6e8efb;
+                color: white;
+            }
+
+            .riddle-master-language-icon {
+                font-size: 1.2rem;
+            }
+
+            /* Difficulty selector styles */
+            #riddle-master-difficulty {
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .riddle-master-difficulty-btn {
+                padding: 8px 20px;
+                border: 2px solid #ddd;
+                border-radius: 20px;
+                background-color: transparent;
+                color: #666;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .riddle-master-difficulty-btn:hover {
+                border-color: #6e8efb;
+                color: #6e8efb;
+            }
+
+            .riddle-master-difficulty-btn.active {
+                border-color: #6e8efb;
+                background-color: #6e8efb;
+                color: white;
+            }
+
+            /* Content styles */
+            #riddle-master-content {
+                background-color: #fff;
+                border-radius: 10px;
+                padding: 30px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                min-height: 300px;
+                position: relative;
+            }
+
+            #riddle-master-question {
+                font-size: 1.5rem;
+                margin-bottom: 30px;
+                line-height: 1.5;
+                color: #333;
+                text-align: center;
+            }
+
+            #riddle-master-answer-input {
+                width: 100%;
+                padding: 15px;
+                border: 2px solid #ddd;
+                border-radius: 10px;
+                font-size: 1.1rem;
+                margin-bottom: 20px;
+                transition: border-color 0.3s ease;
+            }
+
+            #riddle-master-answer-input:focus {
+                border-color: #6e8efb;
+                outline: none;
+            }
+
+            /* Button styles */
+            #riddle-master-buttons {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+            }
+
+            .riddle-master-btn {
+                padding: 12px 25px;
+                border: none;
+                border-radius: 30px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 600;
+            }
+
+            #riddle-master-submit {
+                background-color: #6e8efb;
+                color: white;
+            }
+
+            #riddle-master-submit:hover {
+                background-color: #5d7ce0;
+                transform: translateY(-2px);
+            }
+
+            #riddle-master-hint {
+                background-color: #f8f8f8;
+                color: #666;
+            }
+
+            #riddle-master-hint:hover {
+                background-color: #eee;
+            }
+
+            #riddle-master-skip {
+                background-color: #f8f8f8;
+                color: #666;
+            }
+
+            #riddle-master-skip:hover {
+                background-color: #eee;
+            }
+
+            /* Hint text styles */
+            #riddle-master-hint-text {
+                margin-top: 20px;
+                padding: 15px;
+                background-color: #fff9e6;
+                border-left: 4px solid #ffd166;
+                border-radius: 5px;
+                font-style: italic;
+                color: #6b5900;
+                display: none;
+            }
+
+            /* Result overlay styles */
+            #riddle-master-result {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                background-color: rgba(255, 255, 255, 0.95);
+                border-radius: 10px;
+                z-index: 10;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.5s ease;
+            }
+
+            #riddle-master-result.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            #riddle-master-result-icon {
+                font-size: 5rem;
+                margin-bottom: 20px;
+            }
+
+            #riddle-master-result-text {
+                font-size: 2rem;
+                font-weight: bold;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+
+            #riddle-master-correct-answer {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+                color: #666;
+                text-align: center;
+            }
+
+            #riddle-master-next {
+                padding: 12px 30px;
+                background-color: #6e8efb;
+                color: white;
+                border: none;
+                border-radius: 30px;
+                font-size: 1.1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 600;
+            }
+
+            #riddle-master-next:hover {
+                background-color: #5d7ce0;
+                transform: translateY(-2px);
+            }
+
+            /* Responsive styles */
+            @media (max-width: 768px) {
+                #riddle-master {
+                    padding: 15px;
+                }
+
+                #riddle-master-header h1 {
+                    font-size: 2rem;
+                }
+
+                #riddle-master-stats {
+                    flex-wrap: wrap;
+                }
+
+                .riddle-master-stat {
+                    width: 50%;
+                    margin-bottom: 10px;
+                }
+
+                #riddle-master-content {
+                    padding: 20px;
+                }
+
+                #riddle-master-question {
+                    font-size: 1.3rem;
+                }
+
+                #riddle-master-buttons {
+                    flex-direction: column;
+                }
+
+                .riddle-master-btn {
+                    width: 100%;
+                }
+            }
+
+            /* Animation styles */
+            @keyframes riddle-master-confetti {
+                0% {
+                    transform: translateY(0) rotate(0);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(100vh) rotate(720deg);
+                    opacity: 0;
+                }
+            }
+
+            .riddle-master-confetti {
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                z-index: 100;
+                pointer-events: none;
+            }
+
+            @keyframes riddle-master-bounce {
+                0%, 20%, 50%, 80%, 100% {
+                    transform: translateY(0);
+                }
+                40% {
+                    transform: translateY(-30px);
+                }
+                60% {
+                    transform: translateY(-15px);
+                }
+            }
+
+            .riddle-master-bounce {
+                animation: riddle-master-bounce 1s ease;
+            }
+
+            @keyframes riddle-master-fade-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .riddle-master-fade-in {
+                animation: riddle-master-fade-in 0.5s ease forwards;
+            }
+
+            @keyframes riddle-master-points-popup {
+                0% {
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 0;
+                }
+                10% {
+                    transform: translate(-50%, -50%) scale(1.2);
+                    opacity: 1;
+                }
+                20% {
+                    transform: translate(-50%, -50%) scale(1);
+                }
+                80% {
+                    transform: translate(-50%, -80%) scale(1);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate(-50%, -100%) scale(1);
+                    opacity: 0;
+                }
+            }
+
+            .riddle-master-points-popup {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: rgba(110, 142, 251, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 30px;
+                font-weight: bold;
+                font-size: 1.5rem;
+                z-index: 200;
+                pointer-events: none;
+                animation: riddle-master-points-popup 1.5s ease-out forwards;
+            }
+        `;
+        
+        // Add to document head
+        document.head.appendChild(style);
+    }
+
+    // Load animations
+    function loadAnimations() {
+        // Create animations object
+        gameState.animations = {
+            // Confetti animation for correct answers
+            confetti: function(container) {
+                const colors = ['#6e8efb', '#a777e3', '#ffd166', '#ef476f', '#06d6a0', '#ff9a3c', '#4cc9f0'];
+                const confettiCount = 100;
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'riddle-master-confetti';
+                    
+                    // Random position
+                    const x = Math.random() * container.offsetWidth;
+                    const y = -10;
+                    
+                    // Random color
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Random size
+                    const size = Math.random() * 10 + 5;
+                    
+                    // Random shape (circle or square)
+                    const isCircle = Math.random() > 0.5;
+                    
+                    // Set styles
+                    confetti.style.left = `${x}px`;
+                    confetti.style.top = `${y}px`;
+                    confetti.style.backgroundColor = color;
+                    confetti.style.width = `${size}px`;
+                    confetti.style.height = `${size}px`;
+                    confetti.style.borderRadius = isCircle ? '50%' : '0';
+                    
+                    // Set animation
+                    const duration = Math.random() * 3 + 2;
+                    const delay = Math.random() * 1;
+                    confetti.style.animation = `riddle-master-confetti ${duration}s ease ${delay}s forwards`;
+                    
+                    // Add to container
+                    container.appendChild(confetti);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        if (confetti.parentNode === container) {
+                            container.removeChild(confetti);
+                        }
+                    }, (duration + delay) * 1000);
+                }
+            },
+            
+            // Bounce animation for UI elements
+            bounce: function(element) {
+                element.classList.add('riddle-master-bounce');
+                
+                // Remove class after animation
+                setTimeout(() => {
+                    element.classList.remove('riddle-master-bounce');
+                }, 1000);
+            },
+            
+            // Show points popup
+            showPoints: function(container, points) {
+                const popup = document.createElement('div');
+                popup.className = 'riddle-master-points-popup';
+                popup.textContent = `+${points} points`;
+                
+                // Add to container
+                container.appendChild(popup);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (popup.parentNode === container) {
+                        container.removeChild(popup);
+                    }
+                }, 1500);
+            }
+        };
+    }
+
+    // Load riddles data
+    function loadRiddlesData() {
+        // In a real implementation, this would load the actual data from external files
+        // For now, we'll use placeholder data
+        
+        // Simulating language sections data
+        gameState.languageSections = {
+            english: {
+                name: "English",
+                icon: "🇬🇧",
+                total_riddles: 500
+            },
+            spanish: {
+                name: "Español",
+                icon: "🇪🇸",
+                total_riddles: 200
+            },
+            french: {
+                name: "Français",
+                icon: "🇫🇷",
+                total_riddles: 150
+            },
+            german: {
+                name: "Deutsch",
+                icon: "🇩🇪",
+                total_riddles: 150
+            },
+            chinese: {
+                name: "中文",
+                icon: "🇨🇳",
+                total_riddles: 150
+            },
+            japanese: {
+                name: "日本語",
+                icon: "🇯🇵",
+                total_riddles: 100
+            },
+            arabic: {
+                name: "العربية",
+                icon: "🇦🇪",
+                total_riddles: 100
+            },
+            russian: {
+                name: "Русский",
+                icon: "🇷🇺",
+                total_riddles: 100
+            },
+            hindi: {
+                name: "हिन्दी",
+                icon: "🇮🇳",
+                total_riddles: 100
+            },
+            portuguese: {
+                name: "Português",
+                icon: "🇵🇹",
+                total_riddles: 100
+            }
+        };
+
+        // Create language buttons
+        createLanguageButtons();
+
+        // Simulating riddles data
+        gameState.riddlesData = {
+            english: {
+                easy: [
+                    {
+                        id: 1,
+                        question: "What gets wetter as it dries?",
+                        hint: "You use it after a shower.",
+                        answer: "towel"
+                    },
+                    {
+                        id: 2,
+                        question: "What has a head and a tail but no body?",
+                        hint: "You might flip it to make a decision.",
+                        answer: "coin"
+                    },
+                    {
+                        id: 3,
+                        question: "What has many keys but can't open a single lock?",
+                        hint: "You might play music on it.",
+                        answer: "piano"
+                    },
+                    {
+                        id: 4,
+                        question: "What gets bigger when more is taken away?",
+                        hint: "Think about digging.",
+                        answer: "hole"
+                    },
+                    {
+                        id: 5,
+                        question: "I'm light as a feather, but the strongest person can't hold me for more than a few minutes. What am I?",
+                        hint: "You do this constantly without thinking about it.",
+                        answer: "breath"
+                    }
+                    // In the real implementation, this would include all riddles
+                ],
+                medium: [
+                    {
+                        id: 101,
+                        question: "What has many keys but can't open a single lock?",
+                        hint: "You might play music on it.",
+                        answer: "piano"
+                    },
+                    {
+                        id: 102,
+                        question: "What can travel around the world while staying in a corner?",
+                        hint: "You put it on an envelope.",
+                        answer: "stamp"
+                    }
+                ],
+                hard: [
+                    {
+                        id: 201,
+                        question: "I turn once, what is out will not get in. I turn again, what is in will not get out. What am I?",
+                        hint: "You use it to enter and exit.",
+                        answer: "key"
+                    },
+                    {
+                        id: 202,
+                        question: "The person who makes it has no need of it; the person who buys it has no use for it. The person who uses it can neither see nor feel it. What is it?",
+                        hint: "It's used after death.",
+                        answer: "coffin"
+                    }
+                ]
+            },
+            spanish: {
+                easy: [
+                    {
+                        id: 301,
+                        question: "Blanca por dentro, verde por fuera. Si quieres que te lo diga, espera.",
+                        hint: "Es una fruta.",
+                        answer: "pera"
+                    },
+                    {
+                        id: 302,
+                        question: "Oro parece, plata no es. El que no lo adivine, bien tonto es.",
+                        hint: "Es un fruto amarillo.",
+                        answer: "plátano"
+                    }
+                ]
+            },
+            french: {
+                easy: [
+                    {
+                        id: 401,
+                        question: "Je suis pris avant d'être vu. Qui suis-je?",
+                        hint: "C'est quelque chose que vous faites avec un appareil photo.",
+                        answer: "photo"
+                    }
+                ]
+            }
+            // In the real implementation, this would include all languages
+        };
+    }
+
+    // Create language selection buttons
+    function createLanguageButtons() {
+        for (const lang in gameState.languageSections) {
+            const langData = gameState.languageSections[lang];
+            const button = document.createElement('button');
+            button.className = 'riddle-master-language-btn';
+            button.dataset.language = lang;
+            button.innerHTML = `
+                <span class="riddle-master-language-icon">${langData.icon}</span>
+                <span>${langData.name}</span>
+            `;
+            elements.languageSelector.appendChild(button);
+
+            // Add click event
+            button.addEventListener('click', () => {
+                selectLanguage(lang);
+            });
+        }
+    }
+
+    // Set up event listeners
+    function setupEventListeners() {
+        // Difficulty buttons
+        elements.difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectDifficulty(btn.dataset.difficulty);
+            });
+        });
+
+        // Submit answer button
+        elements.submitBtn.addEventListener('click', checkAnswer);
+
+        // Enter key to submit
+        elements.answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        // Hint button
+        elements.hintBtn.addEventListener('click', showHint);
+
+        // Skip button
+        elements.skipBtn.addEventListener('click', skipRiddle);
+
+        // Next riddle button
+        elements.nextBtn.addEventListener('click', nextRiddle);
+    }
+
+    // Select language
+    function selectLanguage(language) {
+        // Update active language button
+        document.querySelectorAll('.riddle-master-language-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.language === language) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Update game state
+        gameState.currentLanguage = language;
+        
+        // Get a new riddle
+        getNewRiddle();
+    }
+
+    // Select difficulty
+    function selectDifficulty(difficulty) {
+        // Update active difficulty button
+        elements.difficultyBtns.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.difficulty === difficulty) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Update game state
+        gameState.currentDifficulty = difficulty;
+        
+        // Get a new riddle if language is selected
+        if (gameState.currentLanguage) {
+            getNewRiddle();
+        }
+    }
+
+    // Get a new riddle
+    function getNewRiddle() {
+        // Check if we have riddles for this language and difficulty
+        if (!gameState.riddlesData[gameState.currentLanguage] || 
+            !gameState.riddlesData[gameState.currentLanguage][gameState.currentDifficulty] ||
+            gameState.riddlesData[gameState.currentLanguage][gameState.currentDifficulty].length === 0) {
+            
+            elements.question.textContent = "No riddles available for this language and difficulty. Try another combination!";
+            return;
+        }
+
+        // Get available riddles (not used yet)
+        let availableRiddles = gameState.riddlesData[gameState.currentLanguage][gameState.currentDifficulty]
+            .filter(riddle => !gameState.usedRiddles.has(riddle.id));
+
+        // If all riddles have been used, reset the used set
+        if (availableRiddles.length === 0) {
+            gameState.usedRiddles.clear();
+            availableRiddles = gameState.riddlesData[gameState.currentLanguage][gameState.currentDifficulty];
+        }
+
+        // Select a random riddle
+        const randomIndex = Math.floor(Math.random() * availableRiddles.length);
+        gameState.currentRiddle = availableRiddles[randomIndex];
+        
+        // Mark as used
+        gameState.usedRiddles.add(gameState.currentRiddle.id);
+
+        // Display the riddle
+        elements.question.textContent = gameState.currentRiddle.question;
+        elements.answerInput.value = '';
+        elements.hintText.style.display = 'none';
+        elements.answerInput.focus();
+    }
+
+    // Check the answer
+    function checkAnswer() {
+        if (!gameState.currentRiddle) return;
+
+        const userAnswer = elements.answerInput.value.trim().toLowerCase();
+        const correctAnswer = gameState.currentRiddle.answer.toLowerCase();
+
+        // Check if the answer is correct
+        if (userAnswer === correctAnswer) {
+            // Calculate points (fewer points if hint was used)
+            const hintUsed = elements.hintText.style.display === 'block';
+            const points = hintUsed ? 5 : 10;
+            
+            // Update stats
+            gameState.score += points;
+            gameState.solved++;
+            gameState.streak++;
+            
+            // Update displays
+            elements.scoreDisplay.textContent = gameState.score;
+            elements.solvedDisplay.textContent = gameState.solved;
+            elements.streakDisplay.textContent = gameState.streak;
+            
+            // Show success animation
+            showSuccessAnimation(points);
+        } else {
+            // Reset streak
+            gameState.streak = 0;
+            elements.streakDisplay.textContent = gameState.streak;
+            
+            // Show incorrect animation
+            showIncorrectAnimation();
+        }
+    }
+
+    // Show hint
+    function showHint() {
+        if (!gameState.currentRiddle) return;
+
+        elements.hintText.textContent = gameState.currentRiddle.hint;
+        elements.hintText.style.display = 'block';
+        
+        // Update hint count
+        gameState.hintsUsed++;
+        elements.hintsUsedDisplay.textContent = gameState.hintsUsed;
+    }
+
+    // Skip riddle
+    function skipRiddle() {
+        if (!gameState.currentRiddle) return;
+
+        // Reset streak
+        gameState.streak = 0;
+        elements.streakDisplay.textContent = gameState.streak;
+        
+        // Show the answer
+        elements.resultIcon.textContent = '⏭️';
+        elements.resultText.textContent = 'Skipped';
+        elements.answerText.textContent = gameState.currentRiddle.answer;
+        elements.result.classList.add('show');
+    }
+
+    // Next riddle
+    function nextRiddle() {
+        elements.result.classList.remove('show');
+        getNewRiddle();
+    }
+
+    // Show success animation
+    function showSuccessAnimation(points) {
+        // Show result
+        elements.resultIcon.textContent = '🎉';
+        elements.resultText.textContent = 'Correct!';
+        elements.answerText.textContent = gameState.currentRiddle.answer;
+        elements.result.classList.add('show');
+        
+        // Create confetti
+        gameState.animations.confetti(elements.content);
+        
+        // Show points popup
+        gameState.animations.showPoints(elements.content, points);
+        
+        // Bounce streak display if streak > 1
+        if (gameState.streak > 1) {
+            gameState.animations.bounce(elements.streakDisplay);
+        }
+    }
+
+    // Show incorrect animation
+    function showIncorrectAnimation() {
+        // Show result
+        elements.resultIcon.textContent = '❌';
+        elements.resultText.textContent = 'Incorrect';
+        elements.answerText.textContent = gameState.currentRiddle.answer;
+        elements.result.classList.add('show');
+    }
+
+    // Initialize the game when the script loads
+    initGame();
+})();
